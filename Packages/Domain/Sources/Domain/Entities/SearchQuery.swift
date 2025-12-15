@@ -7,17 +7,18 @@
 
 import Foundation
 
-public struct SearchQuery: Hashable {
+public struct SearchQuery: Hashable, Sendable {
     public let query: String
     public let updatedAt: Date
     public let createdAt: Date
     
     public init(
         query: String,
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        createdAt: Date = Date()
     ) {
         self.query = query
         self.updatedAt = updatedAt
-        self.createdAt = Date()
+        self.createdAt = createdAt
     }
 }
