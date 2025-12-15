@@ -31,7 +31,7 @@ final public actor SwiftDataSearchQueryRepository: SearchQueryRepository {
     }
     
     public func fetchAll(query: String?, limit: Int) async throws -> [SearchQuery] {
-        let descriptor: FetchDescriptor<SearchQueryEntity>
+        var descriptor: FetchDescriptor<SearchQueryEntity>
         if let query {
             let predicate = #Predicate<SearchQueryEntity> {
                 $0.query.contains(query)
@@ -41,7 +41,9 @@ final public actor SwiftDataSearchQueryRepository: SearchQueryRepository {
         } else {
             descriptor = FetchDescriptor()
         }
-        return try modelContext.fetch(descriptor, batchSize: limit).map(\.toDomain)
+        descriptor.fetchLimit = limit
+        descriptor.sortBy = [SortDescriptor(\SearchQueryEntity.updatedAt, order: .reverse)]
+        return try modelContext.fetch(descriptor).map(\.toDomain)
     }
     
     public func fetchOne(query: String) async throws -> SearchQuery? {
