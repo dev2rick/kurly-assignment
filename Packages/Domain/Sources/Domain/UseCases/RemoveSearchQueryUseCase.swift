@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol RemoveSearchQueryUseCase {
+public protocol RemoveSearchQueryUseCase: Sendable {
     func execute(searchQuery: String) async throws
 }
 

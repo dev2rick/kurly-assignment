@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol FetchSearchQueryUseCase {
+public protocol FetchSearchQueryUseCase: Sendable {
     func execute(query: String?, limit: Int) async throws -> [SearchQuery]
 }
 

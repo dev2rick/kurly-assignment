@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol SearchQueryRepository {
+public protocol SearchQueryRepository: Sendable {
     func save(searchQuery: String) async throws
     func fetchAll(query: String?, limit: Int) async throws -> [SearchQuery]
     func fetchOne(query: String) async throws -> SearchQuery?

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol SaveSearchQueryUseCase {
+public protocol SaveSearchQueryUseCase: Sendable {
     func execute(searchQuery: String) async throws
 }
 
