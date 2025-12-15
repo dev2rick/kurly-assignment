@@ -25,7 +25,7 @@ public struct SearchQueryView: View {
             Task { await viewModel.onSearch(query: searchQuery) }
         }
         .refreshable {
-            await viewModel.onAppear()
+            await viewModel.onRefresh(query: searchQuery)
         }
         .task {
             await viewModel.onAppear()

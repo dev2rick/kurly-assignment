@@ -10,14 +10,14 @@ import Domain
 
 @MainActor
 final public class SearchQueryListViewModel: ObservableObject {
-    
+
     @Published private(set) var searchQueries: [SearchQuery] = []
     @Published private(set) var errorMessage: String?
-    
+
     private let fetchSearchQueryUseCase: FetchSearchQueryUseCase
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
     private static let MAX_SIZE: Int = 10
-    
+
     public init(
         fetchSearchQueryUseCase: FetchSearchQueryUseCase,
         saveSearchQueryUseCase: SaveSearchQueryUseCase
@@ -25,16 +25,11 @@ final public class SearchQueryListViewModel: ObservableObject {
         self.fetchSearchQueryUseCase = fetchSearchQueryUseCase
         self.saveSearchQueryUseCase = saveSearchQueryUseCase
     }
-}
-
-// MARK: - Inputs
-extension SearchQueryListViewModel {
     
-    func onAppear() async {
-        
+    private func fetchQueries(query: String?) async {
         do {
             let results = try await fetchSearchQueryUseCase.execute(
-                query: nil,
+                query: query,
                 limit: SearchQueryListViewModel.MAX_SIZE
             )
             self.searchQueries = results
@@ -43,11 +38,26 @@ extension SearchQueryListViewModel {
         }
     }
     
-    func onSearch(query: String) async {
+    private func save(searchQuery: String) async {
         do {
-            try await saveSearchQueryUseCase.execute(searchQuery: query)
+            try await saveSearchQueryUseCase.execute(searchQuery: searchQuery)
         } catch {
             self.errorMessage = error.localizedDescription
         }
+    }
+}
+
+// MARK: - Inputs
+extension SearchQueryListViewModel {
+    func onAppear() async {
+        await fetchQueries(query: nil)
+    }
+    
+    func onRefresh(query: String) async {
+        await fetchQueries(query: query)
+    }
+    
+    func onSearch(query: String) async {
+        await save(searchQuery: query)
     }
 }

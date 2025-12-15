@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1D99DDE62EF0031B00C28049 /* Data in Frameworks */ = {isa = PBXBuildFile; productRef = 1D99DDE52EF0031B00C28049 /* Data */; };
+		1D99DDE92EF0032900C28049 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 1D99DDE82EF0032900C28049 /* Domain */; };
+		1D99DDEC2EF0033600C28049 /* Presentation in Frameworks */ = {isa = PBXBuildFile; productRef = 1D99DDEB2EF0033600C28049 /* Presentation */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		1D554EA22EEFBEA500B23A41 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +45,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1D99DDE92EF0032900C28049 /* Domain in Frameworks */,
+				1D99DDEC2EF0033600C28049 /* Presentation in Frameworks */,
+				1D99DDE62EF0031B00C28049 /* Data in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +99,9 @@
 			);
 			name = KurlyAssignment;
 			packageProductDependencies = (
+				1D99DDE52EF0031B00C28049 /* Data */,
+				1D99DDE82EF0032900C28049 /* Domain */,
+				1D99DDEB2EF0033600C28049 /* Presentation */,
 			);
 			productName = KurlyAssignment;
 			productReference = 1D554E942EEFBEA500B23A41 /* KurlyAssignment.app */;
@@ -146,6 +158,11 @@
 			);
 			mainGroup = 1D554E8B2EEFBEA500B23A41;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1D99DDE42EF0031B00C28049 /* XCLocalSwiftPackageReference "Packages/Data" */,
+				1D99DDE72EF0032900C28049 /* XCLocalSwiftPackageReference "Packages/Domain" */,
+				1D99DDEA2EF0033600C28049 /* XCLocalSwiftPackageReference "Packages/Presentation" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1D554E952EEFBEA500B23A41 /* Products */;
 			projectDirPath = "";
@@ -336,7 +353,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -348,8 +365,9 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -369,7 +387,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -381,8 +399,9 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -462,6 +481,36 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		1D99DDE42EF0031B00C28049 /* XCLocalSwiftPackageReference "Packages/Data" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Data;
+		};
+		1D99DDE72EF0032900C28049 /* XCLocalSwiftPackageReference "Packages/Domain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Domain;
+		};
+		1D99DDEA2EF0033600C28049 /* XCLocalSwiftPackageReference "Packages/Presentation" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Presentation;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1D99DDE52EF0031B00C28049 /* Data */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Data;
+		};
+		1D99DDE82EF0032900C28049 /* Domain */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Domain;
+		};
+		1D99DDEB2EF0033600C28049 /* Presentation */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Presentation;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1D554E8C2EEFBEA500B23A41 /* Project object */;
 }
