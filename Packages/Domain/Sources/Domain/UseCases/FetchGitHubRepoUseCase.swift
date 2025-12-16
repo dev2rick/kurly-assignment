@@ -5,7 +5,7 @@
 //  Created by rick on 12/16/25.
 //
 
-public protocol FetchGitHubRepoUseCase {
+public protocol FetchGitHubRepoUseCase: Sendable {
     func execute(query: String, page: Int) async throws -> GitHubRepoPage
 }
 

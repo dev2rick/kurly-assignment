@@ -7,13 +7,13 @@
 
 import Foundation
 
-public protocol NetworkLogger {
+public protocol NetworkLogger: Sendable {
     func log(request: URLRequest)
     func log(responseData data: Data?, response: URLResponse?)
     func log(error: Error)
 }
 
-public protocol GitHubAPIService {
+public protocol GitHubAPIService: Sendable {
     func request<T: Decodable>(_ endpoint: GitHubAPIEndpoint) async throws -> T
 }
 

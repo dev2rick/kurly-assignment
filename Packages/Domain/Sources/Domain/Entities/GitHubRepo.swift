@@ -5,7 +5,7 @@
 //  Created by rick on 12/16/25.
 //
 
-public struct GitHubRepoPage {
+public struct GitHubRepoPage: Sendable {
     public let page: Int
     public let totalCount: Int
     public let items: [GitHubRepo]
@@ -21,18 +21,21 @@ public struct GitHubRepoPage {
     }
 }
 
-public struct GitHubRepo {
+public struct GitHubRepo: Sendable, Hashable {
     public let title: String
     public let description: String
     public let thumbnailUrl: String
+    public let url: String
     
     public init(
         title: String,
         description: String,
-        thumbnailUrl: String
+        thumbnailUrl: String,
+        url: String
     ) {
         self.title = title
         self.description = description
         self.thumbnailUrl = thumbnailUrl
+        self.url = url
     }
 }
