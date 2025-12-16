@@ -26,8 +26,9 @@ final public class SearchQueryListViewModel: ObservableObject {
         self.saveSearchQueryUseCase = saveSearchQueryUseCase
     }
     
-    private func fetchQueries(query: String?) async {
+    private func fetchQueries(query: String) async {
         do {
+            let query = query.isEmpty ? nil : query
             let results = try await fetchSearchQueryUseCase.execute(
                 query: query,
                 limit: SearchQueryListViewModel.MAX_SIZE
@@ -50,14 +51,27 @@ final public class SearchQueryListViewModel: ObservableObject {
 // MARK: - Inputs
 extension SearchQueryListViewModel {
     func onAppear() async {
-        await fetchQueries(query: nil)
+        await fetchQueries(query: "")
     }
     
-    func onRefresh(query: String) async {
+    func onSearchQueryChange(_ query: String) async {
         await fetchQueries(query: query)
     }
     
-    func onSearch(query: String) async {
+    func onRefresh(_ query: String) async {
+        await fetchQueries(query: query)
+    }
+    
+    func onSearch(_ query: String) async {
         await save(searchQuery: query)
+        // TODO: - fetch repo list from github api
+    }
+    
+    func removeAll() async {
+        
+    }
+    
+    func remove(_ query: String) async {
+        
     }
 }
