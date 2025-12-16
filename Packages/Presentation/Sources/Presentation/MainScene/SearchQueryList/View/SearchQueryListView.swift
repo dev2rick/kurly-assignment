@@ -99,10 +99,12 @@ public struct SearchQueryListView: View {
 
 #Preview {
     NavigationView {
-        SearchQueryView(
+        SearchQueryListView(
             viewModel: SearchQueryListViewModel(
                 fetchSearchQueryUseCase: StubFetchSearchQueryUseCase(),
-                saveSearchQueryUseCase: StubSaveSearchQueryUseCase()
+                saveSearchQueryUseCase: StubSaveSearchQueryUseCase(),
+                removeSearchQueryUseCase: StubRemoveSearchQueryUseCase(),
+                removeAllSearchQueryUseCase: StubRemoveAllSearchQueryUseCase()
             )
         )
     }

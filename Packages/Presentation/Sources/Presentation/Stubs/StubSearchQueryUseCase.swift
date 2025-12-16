@@ -14,3 +14,15 @@ final class StubFetchSearchQueryUseCase: FetchSearchQueryUseCase {
         }
     }
 }
+
+final class StubSaveSearchQueryUseCase: SaveSearchQueryUseCase {
+    func execute(searchQuery: String) async throws { }
+}
+
+final class StubRemoveSearchQueryUseCase: RemoveSearchQueryUseCase {
+    func execute(searchQuery: String) async throws { }
+}
+
+final class StubRemoveAllSearchQueryUseCase: RemoveAllSearchQueryUseCase {
+    func execute() async throws { }
+}

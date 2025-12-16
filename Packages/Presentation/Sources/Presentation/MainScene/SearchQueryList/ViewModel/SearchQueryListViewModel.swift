@@ -16,14 +16,21 @@ final public class SearchQueryListViewModel: ObservableObject {
 
     private let fetchSearchQueryUseCase: FetchSearchQueryUseCase
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
+    private let removeSearchQueryUseCase: RemoveSearchQueryUseCase
+    private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
+    
     private static let MAX_SIZE: Int = 10
 
     public init(
         fetchSearchQueryUseCase: FetchSearchQueryUseCase,
-        saveSearchQueryUseCase: SaveSearchQueryUseCase
+        saveSearchQueryUseCase: SaveSearchQueryUseCase,
+        removeSearchQueryUseCase: RemoveSearchQueryUseCase,
+        removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
     ) {
         self.fetchSearchQueryUseCase = fetchSearchQueryUseCase
         self.saveSearchQueryUseCase = saveSearchQueryUseCase
+        self.removeSearchQueryUseCase = removeSearchQueryUseCase
+        self.removeAllSearchQueryUseCase = removeAllSearchQueryUseCase
     }
     
     private func fetchQueries(query: String) async {
@@ -42,6 +49,22 @@ final public class SearchQueryListViewModel: ObservableObject {
     private func save(searchQuery: String) async {
         do {
             try await saveSearchQueryUseCase.execute(searchQuery: searchQuery)
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+    
+    private func removeAllSearchQueries() async {
+        do {
+            try await removeAllSearchQueryUseCase.execute()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+    
+    private func remove(searchQuery: String) async {
+        do {
+            try await removeSearchQueryUseCase.execute(searchQuery: searchQuery)
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -68,10 +91,10 @@ extension SearchQueryListViewModel {
     }
     
     func removeAll() async {
-        
+        await removeAllSearchQueries()
     }
     
     func remove(_ query: String) async {
-        
+        await remove(searchQuery: query)
     }
 }
