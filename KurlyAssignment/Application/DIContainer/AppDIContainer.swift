@@ -10,19 +10,23 @@ import Data
 
 final class AppDIContainer {
     
-    let persistenceStorage: SwiftDataStorage
-    
-    init() {
+    lazy var persistenceStorage: SwiftDataStorage = {
         do {
-            persistenceStorage = try SwiftDataStorage()
+            return try SwiftDataStorage()
         } catch {
             fatalError("Persistence storage initialization failed.")
         }
-    }
+    }()
+    
+    lazy var apiService: GitHubAPIService = {
+        GitHubAPIServiceImpl(logger: DefaultNetworkLogger())
+    }()
+    
     
     func makeMainSceneDIContainer() -> MainSceneDIContainer {
         let dependencies = MainSceneDIContainer.Dependencies(
-            persistenceStorage: persistenceStorage
+            persistenceStorage: persistenceStorage,
+            apiService: apiService
         )
         return MainSceneDIContainer(dependencies: dependencies)
     }

@@ -14,6 +14,7 @@ final class MainSceneDIContainer: MainFlowCoordinatorDependencies {
     
     struct Dependencies {
         let persistenceStorage: SwiftDataStorage
+        let apiService: GitHubAPIService
     }
     
     private let dependencies: Dependencies
@@ -26,6 +27,10 @@ final class MainSceneDIContainer: MainFlowCoordinatorDependencies {
     private func makeSearchQueryRepository() -> SearchQueryRepository {
         let container = dependencies.persistenceStorage.container
         return SwiftDataSearchQueryRepository(modelContainer: container)
+    }
+    
+    private func makeGitHubRepository() -> GitHubRepository {
+        DefaultGitHubRepository(apiService: dependencies.apiService)
     }
     
     // MARK: - UseCases
@@ -53,6 +58,12 @@ final class MainSceneDIContainer: MainFlowCoordinatorDependencies {
         )
     }
     
+    private func makeFetchGitHubRepositoryUseCase() -> FetchGitHubRepoUseCase {
+        DefaultFetchGitHubRepoUseCase(
+            githubRepository: makeGitHubRepository()
+        )
+    }
+    
     // MARK: - Views
     func makeSearchQueryListView(actions: SearchQueryListViewModelActions) -> SearchQueryListView {
         let viewModel = makeSearchQueryListViewModel(actions: actions)
@@ -65,6 +76,7 @@ final class MainSceneDIContainer: MainFlowCoordinatorDependencies {
             saveSearchQueryUseCase: makeSaveSearchQueryUseCase(),
             removeSearchQueryUseCase: makeRemoveSearchQueryUseCase(),
             removeAllSearchQueryUseCase: makeRemoveAllSearchQueryUseCase(),
+            fetchGitHubRepoUseCase: makeFetchGitHubRepositoryUseCase(),
             actions: actions
         )
     }

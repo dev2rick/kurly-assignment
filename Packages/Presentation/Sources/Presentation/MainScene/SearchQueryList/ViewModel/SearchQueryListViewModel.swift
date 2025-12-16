@@ -15,6 +15,7 @@ public struct SearchQueryListViewModelActions {
 @MainActor
 final public class SearchQueryListViewModel: ObservableObject {
 
+    @Published private(set) var githubRepos: [GitHubRepo] = []
     @Published private(set) var searchQueries: [SearchQuery] = []
     @Published private(set) var errorMessage: String?
 
@@ -22,7 +23,10 @@ final public class SearchQueryListViewModel: ObservableObject {
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
     private let removeSearchQueryUseCase: RemoveSearchQueryUseCase
     private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
+    private let fetchGitHubRepoUseCase: FetchGitHubRepoUseCase
     private let actions: SearchQueryListViewModelActions?
+    
+    private(set) var page: Int = 1
     private static let MAX_SIZE: Int = 10
 
     public init(
@@ -30,12 +34,14 @@ final public class SearchQueryListViewModel: ObservableObject {
         saveSearchQueryUseCase: SaveSearchQueryUseCase,
         removeSearchQueryUseCase: RemoveSearchQueryUseCase,
         removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase,
+        fetchGitHubRepoUseCase: FetchGitHubRepoUseCase,
         actions: SearchQueryListViewModelActions?
     ) {
         self.fetchSearchQueryUseCase = fetchSearchQueryUseCase
         self.saveSearchQueryUseCase = saveSearchQueryUseCase
         self.removeSearchQueryUseCase = removeSearchQueryUseCase
         self.removeAllSearchQueryUseCase = removeAllSearchQueryUseCase
+        self.fetchGitHubRepoUseCase = fetchGitHubRepoUseCase
         self.actions = actions
     }
     
@@ -75,6 +81,15 @@ final public class SearchQueryListViewModel: ObservableObject {
             self.errorMessage = error.localizedDescription
         }
     }
+    
+    private func fetchRepos(searchQuery: String) async {
+        do {
+            let response = try await fetchGitHubRepoUseCase.execute(query: searchQuery, page: page)
+            self.githubRepos += response.items
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
 }
 
 // MARK: - Inputs
@@ -89,7 +104,7 @@ extension SearchQueryListViewModel {
     
     func onSearch(_ query: String) async {
         await save(searchQuery: query)
-        // TODO: - fetch repo list from github api
+        await fetchRepos(searchQuery: query)
     }
     
     func removeAll() async {
@@ -100,5 +115,12 @@ extension SearchQueryListViewModel {
     func remove(_ query: String) async {
         await remove(searchQuery: query)
         await fetchQueries(query: "")
+    }
+    
+    func onTapRepo(_ repo: GitHubRepo) {
+        guard let url = URL(string: repo.url) else {
+            return
+        }
+        actions?.showGitHubRepo(url)
     }
 }

@@ -18,67 +18,97 @@ public struct SearchQueryListView: View {
     
     public var body: some View {
         List {
-            Section {
-                ForEach(viewModel.searchQueries, id: \.query) { item in
-                    Button {
-                        Task { await viewModel.onSearch(item.query) }
-                    } label: {
-                        if searchQuery.isEmpty {
-                            HStack(spacing: 24) {
-                                Text(item.query)
-                                
+            if !viewModel.githubRepos.isEmpty {
+                Section {
+                    ForEach(viewModel.githubRepos, id: \.self) { item in
+                        Button {
+                            viewModel.onTapRepo(item)
+                        } label: {
+                            HStack {
+                                AsyncImage(url: URL(string: item.thumbnailUrl)) { result in
+                                    result.image?
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                }
+                                .frame(width: 48, height: 48)
+                                    
+                                VStack(alignment: .leading) {
+                                    Text(item.title)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text(item.description)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } else {
+                Section {
+                    ForEach(viewModel.searchQueries, id: \.query) { item in
+                        Button {
+                            Task { await viewModel.onSearch(item.query) }
+                        } label: {
+                            if searchQuery.isEmpty {
+                                HStack(spacing: 24) {
+                                    Text(item.query)
+                                    
+                                    Button {
+                                        Task { await viewModel.remove(item.query) }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.black, .tertiary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            } else {
+                                HStack {
+                                    Text(item.query)
+                                    Spacer()
+                                    Text(item.displayDate)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        .foregroundColor(.secondary)
+                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    if searchQuery.isEmpty {
+                        Text("최근 검색")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .padding(16)
+                    }
+                } footer: {
+                    if searchQuery.isEmpty {
+                        VStack {
+                            HStack {
+                                Spacer()
                                 Button {
-                                    Task { await viewModel.remove(item.query) }
+                                    Task { await viewModel.removeAll() }
                                 } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.black, .tertiary)
+                                    Text("전체삭제")
+                                        .font(.footnote)
+                                        .foregroundStyle(.red)
                                 }
                                 .buttonStyle(.plain)
+                                .padding(.horizontal, 16)
                             }
-                        } else {
-                            HStack {
-                                Text(item.query)
-                                Spacer()
-                                Text(item.displayDate)
-                                    .font(.caption)
-                            }
+                            Rectangle()
+                                .frame(height: 1)
+                                .foregroundStyle(.tertiary)
                         }
                     }
-                    .foregroundColor(.secondary)
-                    .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .buttonStyle(.plain)
                 }
-            } header: {
-                if searchQuery.isEmpty {
-                    Text("최근 검색")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .padding(16)
-                }
-            } footer: {
-                if searchQuery.isEmpty {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button {
-                                Task { await viewModel.removeAll() }
-                            } label: {
-                                Text("전체삭제")
-                                    .font(.footnote)
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 16)
-                        }
-                        Rectangle()
-                            .frame(height: 1)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
+                .listRowInsets(.init())
+                .listRowSpacing(0)
+                .listRowSeparator(.hidden)
             }
-            .listRowInsets(.init())
-            .listRowSpacing(0)
-            .listRowSeparator(.hidden)
         }
         .environment(\.defaultMinListRowHeight, 0)
         .animation(.easeInOut, value: searchQuery)
@@ -104,6 +134,7 @@ public struct SearchQueryListView: View {
                 saveSearchQueryUseCase: StubSaveSearchQueryUseCase(),
                 removeSearchQueryUseCase: StubRemoveSearchQueryUseCase(),
                 removeAllSearchQueryUseCase: StubRemoveAllSearchQueryUseCase(),
+                fetchGitHubRepoUseCase: StubFetchGitHubUseCase(),
                 actions: nil
             )
         )
