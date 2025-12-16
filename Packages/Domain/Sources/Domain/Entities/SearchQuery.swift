@@ -22,3 +22,11 @@ public struct SearchQuery: Hashable, Sendable {
         self.createdAt = createdAt
     }
 }
+
+public extension SearchQuery {
+    var displayDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM. dd."
+        return formatter.string(from: updatedAt)
+    }
+}

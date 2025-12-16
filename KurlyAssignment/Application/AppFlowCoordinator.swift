@@ -24,10 +24,11 @@ final class AppFlowCoordinator {
     
     func start() {
         let rootViewController = UINavigationController()
-        
+        rootViewController.navigationBar.prefersLargeTitles = true
+
         self.rootViewController = rootViewController
         window.rootViewController = rootViewController
-        
+
         appDIContainer
             .makeMainSceneDIContainer()
             .makeMainFlowCoordinator(navigationController: rootViewController)

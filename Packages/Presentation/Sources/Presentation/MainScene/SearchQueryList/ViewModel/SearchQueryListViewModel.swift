@@ -87,10 +87,6 @@ extension SearchQueryListViewModel {
         await fetchQueries(query: query)
     }
     
-    func onRefresh(_ query: String) async {
-        await fetchQueries(query: query)
-    }
-    
     func onSearch(_ query: String) async {
         await save(searchQuery: query)
         // TODO: - fetch repo list from github api
@@ -98,9 +94,11 @@ extension SearchQueryListViewModel {
     
     func removeAll() async {
         await removeAllSearchQueries()
+        await fetchQueries(query: "")
     }
     
     func remove(_ query: String) async {
         await remove(searchQuery: query)
+        await fetchQueries(query: "")
     }
 }
