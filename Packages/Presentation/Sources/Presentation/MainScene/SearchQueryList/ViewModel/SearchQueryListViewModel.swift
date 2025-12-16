@@ -8,6 +8,10 @@
 import Foundation
 import Domain
 
+public struct SearchQueryListViewModelActions {
+    let showGitHubRepo: (URL) -> Void
+}
+
 @MainActor
 final public class SearchQueryListViewModel: ObservableObject {
 
@@ -18,19 +22,21 @@ final public class SearchQueryListViewModel: ObservableObject {
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
     private let removeSearchQueryUseCase: RemoveSearchQueryUseCase
     private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
-    
+    private let actions: SearchQueryListViewModelActions?
     private static let MAX_SIZE: Int = 10
 
     public init(
         fetchSearchQueryUseCase: FetchSearchQueryUseCase,
         saveSearchQueryUseCase: SaveSearchQueryUseCase,
         removeSearchQueryUseCase: RemoveSearchQueryUseCase,
-        removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
+        removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase,
+        actions: SearchQueryListViewModelActions?
     ) {
         self.fetchSearchQueryUseCase = fetchSearchQueryUseCase
         self.saveSearchQueryUseCase = saveSearchQueryUseCase
         self.removeSearchQueryUseCase = removeSearchQueryUseCase
         self.removeAllSearchQueryUseCase = removeAllSearchQueryUseCase
+        self.actions = actions
     }
     
     private func fetchQueries(query: String) async {

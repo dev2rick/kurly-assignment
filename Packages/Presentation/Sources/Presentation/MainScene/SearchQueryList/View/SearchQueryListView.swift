@@ -104,7 +104,8 @@ public struct SearchQueryListView: View {
                 fetchSearchQueryUseCase: StubFetchSearchQueryUseCase(),
                 saveSearchQueryUseCase: StubSaveSearchQueryUseCase(),
                 removeSearchQueryUseCase: StubRemoveSearchQueryUseCase(),
-                removeAllSearchQueryUseCase: StubRemoveAllSearchQueryUseCase()
+                removeAllSearchQueryUseCase: StubRemoveAllSearchQueryUseCase(),
+                actions: nil
             )
         )
     }
