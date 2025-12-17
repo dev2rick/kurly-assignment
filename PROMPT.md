@@ -107,3 +107,69 @@ Kurly 채용과제 진행 중 AI(Claude Code)와의 대화 기록
 **결과**:
 - 모든 테스트 함수명이 한글로 변경되었으며, 33개 테스트 모두 정상 통과
 - PROMPT.md 파일 업데이트 (본 내용 추가)
+
+---
+
+### Q3. Presentation Layer ViewModel 테스트 작성 요청
+
+**질문**: Presentation 레이어의 ViewModel 테스트 코드 작성 요청
+
+**분석**:
+- Explore 에이전트로 Presentation 레이어 구조 파악
+- 1개의 ViewModel 발견: `SearchQueryListViewModel`
+- ViewModel 의존성:
+  - 5개 UseCase: `FetchSearchQueryUseCase`, `SaveSearchQueryUseCase`, `RemoveSearchQueryUseCase`, `RemoveAllSearchQueryUseCase`, `FetchGitHubRepoUseCase`
+  - 1개 Actions: `SearchQueryListViewModelActions` (네비게이션 콜백)
+- Published 상태: `query`, `githubRepos`, `searchQueries`, `errorMessage`, `isLoading`
+- 입력 메서드: `onAppear()`, `onSearchQueryChange()`, `onSubmit()`, `onTapItem()`, `onTapRepo()`, `remove()`, `removeAll()`
+
+**구현**:
+1. Mock UseCase 클래스 작성 (5개):
+   - `MockFetchSearchQueryUseCase`
+   - `MockSaveSearchQueryUseCase`
+   - `MockRemoveSearchQueryUseCase`
+   - `MockRemoveAllSearchQueryUseCase`
+   - `MockFetchGitHubRepoUseCase`
+
+2. SearchQueryListViewModel 테스트 작성 (16개 테스트):
+   - `onAppear` 테스트: 2개
+     - 빈 쿼리로 검색 목록 조회
+     - 검색 쿼리 조회 실패
+   - `onSearchQueryChange` 테스트: 2개
+     - 빈 문자열로 전체 목록 조회
+     - 쿼리 필터링
+   - `onSubmit` 테스트: 4개
+     - 쿼리 저장 및 저장소 검색
+     - 로딩 상태 변경
+     - 저장소 검색 실패
+     - 저장소 목록 누적 (페이지네이션)
+   - `onTapItem` 테스트: 1개
+     - 쿼리 저장 및 저장소 검색
+   - `removeAll` 테스트: 2개
+     - 전체 삭제 및 목록 갱신
+     - 삭제 실패
+   - `remove` 테스트: 2개
+     - 개별 삭제 및 목록 갱신
+     - 삭제 실패
+   - `onTapRepo` 테스트: 2개
+     - 유효한 URL로 액션 호출
+     - 잘못된 URL로 액션 미호출
+   - 초기 상태 테스트: 1개
+
+**테스트 특징**:
+- `@MainActor` 적용하여 ViewModel의 MainActor 격리 준수
+- `async throws` 함수 테스트
+- Published 프로퍼티 상태 검증
+- Mock UseCase를 통한 의존성 격리
+- Actions 콜백 검증
+- 에러 처리 검증
+
+**테스트 실행**:
+- 플랫폼: iOS 17 (iPhone 17 Pro 시뮬레이터)
+- 총 16개 테스트 모두 통과
+- 실행 시간: 약 0.019초
+
+**결과**:
+- Mock UseCase 5개 작성
+- ViewModel 테스트 16개 작성 및 모두 통과
+- iPhone 17 Pro 시뮬레이터에서 테스트 검증 완료
