@@ -7,6 +7,7 @@
 
 import Foundation
 import Domain
+import Combine
 
 public struct SearchQueryListViewModelActions {
     let showGitHubRepo: (URL) -> Void
@@ -15,9 +16,11 @@ public struct SearchQueryListViewModelActions {
 @MainActor
 final public class SearchQueryListViewModel: ObservableObject {
 
+    @Published var query: String = ""
     @Published private(set) var githubRepos: [GitHubRepo] = []
     @Published private(set) var searchQueries: [SearchQuery] = []
     @Published private(set) var errorMessage: String?
+    @Published private(set) var isLoading: Bool = false
 
     private let fetchSearchQueryUseCase: FetchSearchQueryUseCase
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
@@ -25,7 +28,7 @@ final public class SearchQueryListViewModel: ObservableObject {
     private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
     private let fetchGitHubRepoUseCase: FetchGitHubRepoUseCase
     private let actions: SearchQueryListViewModelActions?
-    
+    private var cancellables: Set<AnyCancellable> = []
     private(set) var page: Int = 1
     private static let MAX_SIZE: Int = 10
 
@@ -43,13 +46,31 @@ final public class SearchQueryListViewModel: ObservableObject {
         self.removeAllSearchQueryUseCase = removeAllSearchQueryUseCase
         self.fetchGitHubRepoUseCase = fetchGitHubRepoUseCase
         self.actions = actions
+        subscribes()
+    }
+    
+    func subscribes() {
+        $query
+            .debounce(for: 0.2, scheduler: DispatchQueue.main)
+            .sink { [weak self] q in
+                Task {
+                    await self?.onSearchQueryChange(q)
+                }
+            }
+            .store(in: &cancellables)
     }
     
     private func fetchQueries(query: String) async {
         do {
-            let query = query.isEmpty ? nil : query
+            let queryString: String?
+            if query.isEmpty {
+                githubRepos = []
+                queryString = nil
+            } else {
+                queryString = query
+            }
             let results = try await fetchSearchQueryUseCase.execute(
-                query: query,
+                query: queryString,
                 limit: SearchQueryListViewModel.MAX_SIZE
             )
             self.searchQueries = results
@@ -84,8 +105,10 @@ final public class SearchQueryListViewModel: ObservableObject {
     
     private func fetchRepos(searchQuery: String) async {
         do {
+            self.isLoading = true
             let response = try await fetchGitHubRepoUseCase.execute(query: searchQuery, page: page)
             self.githubRepos += response.items
+            self.isLoading = false
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -95,14 +118,20 @@ final public class SearchQueryListViewModel: ObservableObject {
 // MARK: - Inputs
 extension SearchQueryListViewModel {
     func onAppear() async {
-        await fetchQueries(query: "")
+        await fetchQueries(query: query)
     }
     
     func onSearchQueryChange(_ query: String) async {
         await fetchQueries(query: query)
     }
     
-    func onSearch(_ query: String) async {
+    func onSubmit() async {
+        await save(searchQuery: query)
+        await fetchRepos(searchQuery: query)
+    }
+    
+    func onTapItem(_ query: String) async {
+        self.query = query
         await save(searchQuery: query)
         await fetchRepos(searchQuery: query)
     }
@@ -118,9 +147,7 @@ extension SearchQueryListViewModel {
     }
     
     func onTapRepo(_ repo: GitHubRepo) {
-        guard let url = URL(string: repo.url) else {
-            return
-        }
+        guard let url = URL(string: repo.url) else { return }
         actions?.showGitHubRepo(url)
     }
 }

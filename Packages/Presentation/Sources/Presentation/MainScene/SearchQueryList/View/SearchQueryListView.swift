@@ -9,7 +9,7 @@ import SwiftUI
 
 public struct SearchQueryListView: View {
     
-    @State private(set) var searchQuery: String = ""
+//    @State private(set) var searchQuery: String = ""
     @StateObject private var viewModel: SearchQueryListViewModel
     
     public init(viewModel: SearchQueryListViewModel) {
@@ -50,9 +50,9 @@ public struct SearchQueryListView: View {
                 Section {
                     ForEach(viewModel.searchQueries, id: \.query) { item in
                         Button {
-                            Task { await viewModel.onSearch(item.query) }
+                            Task { await viewModel.onTapItem(item.query) }
                         } label: {
-                            if searchQuery.isEmpty {
+                            if viewModel.query.isEmpty {
                                 HStack(spacing: 24) {
                                     Text(item.query)
                                     
@@ -78,14 +78,14 @@ public struct SearchQueryListView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    if searchQuery.isEmpty {
+                    if viewModel.query.isEmpty {
                         Text("최근 검색")
                             .font(.headline)
                             .foregroundColor(.primary)
                             .padding(16)
                     }
                 } footer: {
-                    if searchQuery.isEmpty {
+                    if viewModel.query.isEmpty {
                         VStack {
                             HStack {
                                 Spacer()
@@ -109,20 +109,18 @@ public struct SearchQueryListView: View {
                 .listRowSpacing(0)
                 .listRowSeparator(.hidden)
             }
+            if viewModel.isLoading {
+                ProgressView()
+                    .progressViewStyle(.circular)
+            }
         }
         .environment(\.defaultMinListRowHeight, 0)
-        .animation(.easeInOut, value: searchQuery)
         .listStyle(.plain)
-        .searchable(text: $searchQuery, prompt: "저장소 검색")
-        .onSubmit(of: .search) {
-            Task { await viewModel.onSearch(searchQuery) }
-        }
+        .searchable(text: $viewModel.query, prompt: "저장소 검색")
+        .onSubmit(of: .search) { Task { await viewModel.onSubmit() } }
         .task {
             await viewModel.onAppear()
         }
-        .onChange(of: searchQuery) { _, newValue in
-            Task { await viewModel.onSearchQueryChange(newValue) }
-        }   
     }
 }
 
