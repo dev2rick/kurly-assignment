@@ -22,6 +22,7 @@ public struct SearchQueryListViewModelActions {
 @MainActor
 final public class SearchQueryListViewModel: ObservableObject {
 
+    // MARK: - Outputs
     @Published var query: String = ""
     @Published private(set) var githubRepos: [GitHubRepo] = []
     @Published private(set) var cachedQueries: [SearchQuery] = []
@@ -36,8 +37,8 @@ final public class SearchQueryListViewModel: ObservableObject {
     private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
     private let fetchGitHubRepoUseCase: FetchGitHubRepoUseCase
     
-    private var fetchCachedQueryTask: Task<Void, Never>?
-    private var fetchGitHubRepoTask: Task<Void, Never>?
+    private(set) var fetchCachedQueryTask: Task<Void, Never>?
+    private(set) var fetchGitHubRepoTask: Task<Void, Never>?
     
     private let actions: SearchQueryListViewModelActions?
     private var cancellables: Set<AnyCancellable> = []
@@ -62,7 +63,7 @@ final public class SearchQueryListViewModel: ObservableObject {
         subscribes()
     }
     
-    func subscribes() {
+    private func subscribes() {
         $query
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] in self?.handleQueryChange(query: $0) }

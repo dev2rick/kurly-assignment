@@ -173,3 +173,40 @@ Kurly 채용과제 진행 중 AI(Claude Code)와의 대화 기록
 - Mock UseCase 5개 작성
 - ViewModel 테스트 16개 작성 및 모두 통과
 - iPhone 17 Pro 시뮬레이터에서 테스트 검증 완료
+
+---
+
+### Q4. ViewModel 수정에 따른 테스트 케이스 업데이트
+
+**날짜**: 2025-12-19
+
+**질문**: ViewModel 구현을 수정했으니 테스트 케이스를 수정하고 프롬프트를 문서화 요청
+
+**ViewModel 주요 변경사항**:
+1. `searchQueries` → `cachedQueries` 프로퍼티명 변경
+2. `onSearchQueryChange()` 메서드 제거, `query` Publisher 구독 방식으로 변경 (debounce 0.1초)
+3. `searchState` 추가: `.idle` / `.preSearching(query:)` / `.postSearch(query:)`
+4. Task 관리: `fetchCachedQueryTask`, `fetchGitHubRepoTask` → `private(set)`으로 변경
+5. `onSubmit()`, `onTapItem()`: async 제거 (동기 함수로 변경, 내부에서 Task 생성)
+6. `removeAll()`: `cachedQueries = []` 직접 설정
+
+**테스트 케이스 수정 내역**:
+1. 프로퍼티명 변경: `searchQueries` → `cachedQueries` (9곳)
+2. query 변경 테스트 수정 (2개):
+   - `await sut.onSearchQueryChange(query)` → `sut.query = query` + debounce 대기
+3. removeAll 테스트: `cachedQueries.isEmpty` 직접 검증
+4. 페이지네이션 테스트: `test_onLoadMore_저장소_목록_누적()` 추가
+5. Task 완료 대기 방식 추가 (6개 메서드):
+   ```swift
+   // 이전
+   await sut.onSubmit()
+
+   // 변경 (Task 완료 대기)
+   sut.onSubmit()
+   _ = await sut.fetchGitHubRepoTask?.result
+   ```
+
+**결과**:
+- 총 17개 테스트 케이스 (1개 추가)
+- `Task.sleep()` 대신 `fetchGitHubRepoTask?.result` 사용으로 안정성 향상
+- 빌드 성공 (iOS 17 시뮬레이터)

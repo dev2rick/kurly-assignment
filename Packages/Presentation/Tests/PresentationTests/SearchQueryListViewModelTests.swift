@@ -74,9 +74,9 @@ final class SearchQueryListViewModelTests: XCTestCase {
         XCTAssertEqual(mockFetchSearchQuery.executeCallCount, 1)
         XCTAssertNil(mockFetchSearchQuery.executeLastQuery)
         XCTAssertEqual(mockFetchSearchQuery.executeLastLimit, 10)
-        XCTAssertEqual(sut.searchQueries.count, 2)
-        XCTAssertEqual(sut.searchQueries[0].query, "Swift")
-        XCTAssertEqual(sut.searchQueries[1].query, "iOS")
+        XCTAssertEqual(sut.cachedQueries.count, 2)
+        XCTAssertEqual(sut.cachedQueries[0].query, "Swift")
+        XCTAssertEqual(sut.cachedQueries[1].query, "iOS")
     }
 
     func test_onAppear_검색_쿼리_조회_실패() async throws {
@@ -92,9 +92,9 @@ final class SearchQueryListViewModelTests: XCTestCase {
         XCTAssertNotNil(sut.errorMessage)
     }
 
-    // MARK: - onSearchQueryChange 테스트
+    // MARK: - query 변경 테스트
 
-    func test_onSearchQueryChange_빈_문자열로_전체_목록_조회() async throws {
+    func test_query_변경시_빈_문자열로_전체_목록_조회() async throws {
         // Given
         let expectedQueries = [
             SearchQuery(query: "Swift", updatedAt: Date(), createdAt: Date())
@@ -102,7 +102,9 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchSearchQuery.executeResult = .success(expectedQueries)
 
         // When
-        await sut.onSearchQueryChange("")
+        sut.query = ""
+        // debounce 대기
+        try await Task.sleep(nanoseconds: 150_000_000) // 0.15초
 
         // Then
         XCTAssertEqual(mockFetchSearchQuery.executeCallCount, 1)
@@ -110,7 +112,7 @@ final class SearchQueryListViewModelTests: XCTestCase {
         XCTAssertTrue(sut.githubRepos.isEmpty)
     }
 
-    func test_onSearchQueryChange_쿼리_필터링() async throws {
+    func test_query_변경시_쿼리_필터링() async throws {
         // Given
         let query = "Swift"
         let expectedQueries = [
@@ -120,12 +122,14 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchSearchQuery.executeResult = .success(expectedQueries)
 
         // When
-        await sut.onSearchQueryChange(query)
+        sut.query = query
+        // debounce 대기
+        try await Task.sleep(nanoseconds: 150_000_000) // 0.15초
 
         // Then
         XCTAssertEqual(mockFetchSearchQuery.executeCallCount, 1)
         XCTAssertEqual(mockFetchSearchQuery.executeLastQuery, query)
-        XCTAssertEqual(sut.searchQueries.count, 2)
+        XCTAssertEqual(sut.cachedQueries.count, 2)
     }
 
     // MARK: - onSubmit 테스트
@@ -146,7 +150,8 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchGitHubRepo.executeResult = .success(expectedPage)
 
         // When
-        await sut.onSubmit()
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
 
         // Then
         XCTAssertEqual(mockSaveSearchQuery.executeCallCount, 1)
@@ -165,7 +170,8 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchGitHubRepo.executeResult = .success(expectedPage)
 
         // When
-        await sut.onSubmit()
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
 
         // Then
         XCTAssertFalse(sut.isLoading)
@@ -178,7 +184,8 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchGitHubRepo.executeResult = .failure(expectedError)
 
         // When
-        await sut.onSubmit()
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
 
         // Then
         XCTAssertEqual(mockSaveSearchQuery.executeCallCount, 1)
@@ -203,7 +210,8 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchGitHubRepo.executeResult = .success(expectedPage)
 
         // When
-        await sut.onTapItem(query)
+        sut.onTapItem(query)
+        _ = await sut.fetchGitHubRepoTask?.result
 
         // Then
         XCTAssertEqual(sut.query, query)
@@ -218,15 +226,19 @@ final class SearchQueryListViewModelTests: XCTestCase {
 
     func test_removeAll_전체_삭제_및_목록_갱신() async throws {
         // Given
-        mockFetchSearchQuery.executeResult = .success([])
+        // 초기 상태에 캐시된 쿼리가 있다고 가정
+        mockFetchSearchQuery.executeResult = .success([
+            SearchQuery(query: "Swift", updatedAt: Date(), createdAt: Date())
+        ])
+        await sut.onAppear()
+        XCTAssertEqual(sut.cachedQueries.count, 1)
 
         // When
         await sut.removeAll()
 
         // Then
         XCTAssertEqual(mockRemoveAllSearchQuery.executeCallCount, 1)
-        XCTAssertEqual(mockFetchSearchQuery.executeCallCount, 1)
-        XCTAssertNil(mockFetchSearchQuery.executeLastQuery)
+        XCTAssertTrue(sut.cachedQueries.isEmpty)
     }
 
     func test_removeAll_삭제_실패() async throws {
@@ -260,8 +272,8 @@ final class SearchQueryListViewModelTests: XCTestCase {
         XCTAssertEqual(mockRemoveSearchQuery.executeLastQuery, query)
         XCTAssertEqual(mockFetchSearchQuery.executeCallCount, 1)
         XCTAssertNil(mockFetchSearchQuery.executeLastQuery)
-        XCTAssertEqual(sut.searchQueries.count, 1)
-        XCTAssertEqual(sut.searchQueries[0].query, "iOS")
+        XCTAssertEqual(sut.cachedQueries.count, 1)
+        XCTAssertEqual(sut.cachedQueries[0].query, "iOS")
     }
 
     func test_remove_삭제_실패() async throws {
@@ -320,7 +332,7 @@ final class SearchQueryListViewModelTests: XCTestCase {
         // Then
         XCTAssertEqual(sut.query, "")
         XCTAssertTrue(sut.githubRepos.isEmpty)
-        XCTAssertTrue(sut.searchQueries.isEmpty)
+        XCTAssertTrue(sut.cachedQueries.isEmpty)
         XCTAssertNil(sut.errorMessage)
         XCTAssertFalse(sut.isLoading)
         XCTAssertEqual(sut.page, 1)
@@ -328,7 +340,7 @@ final class SearchQueryListViewModelTests: XCTestCase {
 
     // MARK: - 페이지네이션 테스트
 
-    func test_onSubmit_저장소_목록_누적() async throws {
+    func test_onSubmit_저장소_목록_초기화() async throws {
         // Given
         sut.query = "Swift"
         let firstRepos = [
@@ -342,17 +354,52 @@ final class SearchQueryListViewModelTests: XCTestCase {
         mockFetchGitHubRepo.executeResult = .success(
             GitHubRepoPage(page: 1, totalCount: 100, items: firstRepos)
         )
-        await sut.onSubmit()
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
+        XCTAssertEqual(sut.githubRepos.count, 1)
 
-        // When - 두 번째 검색 (같은 쿼리)
+        // When - 두 번째 검색 (onSubmit은 항상 githubRepos를 초기화)
         mockFetchGitHubRepo.executeResult = .success(
             GitHubRepoPage(page: 1, totalCount: 100, items: secondRepos)
         )
-        await sut.onSubmit()
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
 
-        // Then
+        // Then - 새로운 검색이므로 기존 결과는 초기화되고 새로운 결과만 표시
+        XCTAssertEqual(sut.githubRepos.count, 1)
+        XCTAssertEqual(sut.githubRepos[0].title, "repo2")
+        XCTAssertEqual(sut.page, 2) // 페이지는 증가
+    }
+
+    func test_onLoadMore_저장소_목록_누적() async throws {
+        // Given
+        sut.query = "Swift"
+        let firstRepos = [
+            GitHubRepo(title: "repo1", description: "desc1", thumbnailUrl: "url1", url: "url1")
+        ]
+        let secondRepos = [
+            GitHubRepo(title: "repo2", description: "desc2", thumbnailUrl: "url2", url: "url2")
+        ]
+
+        // When - 첫 번째 검색
+        mockFetchGitHubRepo.executeResult = .success(
+            GitHubRepoPage(page: 1, totalCount: 100, items: firstRepos)
+        )
+        sut.onSubmit()
+        _ = await sut.fetchGitHubRepoTask?.result
+        XCTAssertEqual(sut.githubRepos.count, 1)
+
+        // When - 페이지 로드 (onLoadMore는 githubRepos에 누적)
+        mockFetchGitHubRepo.executeResult = .success(
+            GitHubRepoPage(page: 2, totalCount: 100, items: secondRepos)
+        )
+        sut.onLoadMore(item: firstRepos[0])
+        _ = await sut.fetchGitHubRepoTask?.result
+
+        // Then - 기존 결과에 새 결과가 누적
         XCTAssertEqual(sut.githubRepos.count, 2)
         XCTAssertEqual(sut.githubRepos[0].title, "repo1")
         XCTAssertEqual(sut.githubRepos[1].title, "repo2")
+        XCTAssertEqual(sut.page, 3)
     }
 }
