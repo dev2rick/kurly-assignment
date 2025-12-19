@@ -9,6 +9,12 @@ import Foundation
 import Domain
 import Combine
 
+enum SearchQueryState {
+    case idle
+    case preSearching(query: String)
+    case postSearch(query: String)
+}
+
 public struct SearchQueryListViewModelActions {
     let showGitHubRepo: (URL) -> Void
 }
@@ -18,20 +24,24 @@ final public class SearchQueryListViewModel: ObservableObject {
 
     @Published var query: String = ""
     @Published private(set) var githubRepos: [GitHubRepo] = []
-    @Published private(set) var searchQueries: [SearchQuery] = []
+    @Published private(set) var cachedQueries: [SearchQuery] = []
+    @Published private(set) var searchState: SearchQueryState = .idle
+    
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading: Bool = false
-
+    
     private let fetchSearchQueryUseCase: FetchSearchQueryUseCase
     private let saveSearchQueryUseCase: SaveSearchQueryUseCase
     private let removeSearchQueryUseCase: RemoveSearchQueryUseCase
     private let removeAllSearchQueryUseCase: RemoveAllSearchQueryUseCase
     private let fetchGitHubRepoUseCase: FetchGitHubRepoUseCase
+    
+    private var fetchCachedQueryTask: Task<Void, Never>?
     private let actions: SearchQueryListViewModelActions?
     private var cancellables: Set<AnyCancellable> = []
     private(set) var page: Int = 1
     private static let MAX_SIZE: Int = 10
-
+    
     public init(
         fetchSearchQueryUseCase: FetchSearchQueryUseCase,
         saveSearchQueryUseCase: SaveSearchQueryUseCase,
@@ -52,28 +62,36 @@ final public class SearchQueryListViewModel: ObservableObject {
     func subscribes() {
         $query
             .debounce(for: 0.2, scheduler: DispatchQueue.main)
-            .sink { [weak self] q in
-                Task {
-                    await self?.onSearchQueryChange(q)
-                }
-            }
+            .sink { [weak self] in self?.handleQueryChange(query: $0) }
             .store(in: &cancellables)
     }
     
-    private func fetchQueries(query: String) async {
-        do {
-            let queryString: String?
-            if query.isEmpty {
-                githubRepos = []
-                queryString = nil
-            } else {
-                queryString = query
+    private func handleQueryChange(query: String) {
+        
+        if query.isEmpty {
+            searchState = .idle
+        } else {
+            switch searchState {
+            case .idle, .preSearching:
+                searchState = .preSearching(query: query)
+            case .postSearch:
+                return
             }
+        }
+        fetchCachedQueryTask?.cancel()
+        fetchCachedQueryTask = Task {
+            await fetchCachedQueries(query: query)
+        }
+    }
+    
+    private func fetchCachedQueries(query: String) async {
+        do {
+            let queryString: String? = query.isEmpty ? nil : query
             let results = try await fetchSearchQueryUseCase.execute(
                 query: queryString,
                 limit: SearchQueryListViewModel.MAX_SIZE
             )
-            self.searchQueries = results
+            self.cachedQueries = results
         } catch {
             self.errorMessage = error.localizedDescription
         }
@@ -118,14 +136,17 @@ final public class SearchQueryListViewModel: ObservableObject {
 // MARK: - Inputs
 extension SearchQueryListViewModel {
     func onAppear() async {
-        await fetchQueries(query: query)
+        await fetchCachedQueries(query: query)
     }
-    
-    func onSearchQueryChange(_ query: String) async {
-        await fetchQueries(query: query)
-    }
-    
+//    
+//    func onSearchQueryChange(_ query: String) async {
+//        await fetchCachedQueries(query: query)
+//    }
+//    
     func onSubmit() async {
+        githubRepos = []
+        page = 1
+        searchState = .postSearch(query: query)
         await save(searchQuery: query)
         await fetchRepos(searchQuery: query)
     }
@@ -138,12 +159,12 @@ extension SearchQueryListViewModel {
     
     func removeAll() async {
         await removeAllSearchQueries()
-        await fetchQueries(query: "")
+        cachedQueries = []
     }
     
     func remove(_ query: String) async {
         await remove(searchQuery: query)
-        await fetchQueries(query: "")
+        await fetchCachedQueries(query: "")
     }
     
     func onTapRepo(_ repo: GitHubRepo) {

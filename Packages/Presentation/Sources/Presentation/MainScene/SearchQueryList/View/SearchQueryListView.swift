@@ -18,7 +18,79 @@ public struct SearchQueryListView: View {
     
     public var body: some View {
         List {
-            if !viewModel.githubRepos.isEmpty {
+            
+            switch viewModel.searchState {
+            case .idle:
+                Section {
+                    ForEach(viewModel.cachedQueries, id: \.query) { item in
+                        Button {
+                            Task { await viewModel.onTapItem(item.query) }
+                        } label: {
+                            HStack(spacing: 24) {
+                                Text(item.query)
+                                
+                                Button {
+                                    Task { await viewModel.remove(item.query) }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.black, .tertiary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .foregroundColor(.secondary)
+                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("최근 검색")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .padding(16)
+                } footer: {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                Task { await viewModel.removeAll() }
+                            } label: {
+                                Text("전체삭제")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 16)
+                        }
+                        Rectangle()
+                            .frame(height: 1)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .listRowInsets(.init())
+                .listRowSpacing(0)
+                .listRowSeparator(.hidden)
+            case .preSearching:
+                Section {
+                    ForEach(viewModel.cachedQueries, id: \.query) { item in
+                        Button {
+                            Task { await viewModel.onTapItem(item.query) }
+                        } label: {
+                            HStack {
+                                Text(item.query)
+                                Spacer()
+                                Text(item.displayDate)
+                                    .font(.caption)
+                            }
+                        }
+                        .foregroundColor(.secondary)
+                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowInsets(.init())
+                .listRowSpacing(0)
+                .listRowSeparator(.hidden)
+            case .postSearch:
                 Section {
                     ForEach(viewModel.githubRepos, id: \.self) { item in
                         Button {
@@ -46,72 +118,10 @@ public struct SearchQueryListView: View {
                         .buttonStyle(.plain)
                     }
                 }
-            } else {
-                Section {
-                    ForEach(viewModel.searchQueries, id: \.query) { item in
-                        Button {
-                            Task { await viewModel.onTapItem(item.query) }
-                        } label: {
-                            if viewModel.query.isEmpty {
-                                HStack(spacing: 24) {
-                                    Text(item.query)
-                                    
-                                    Button {
-                                        Task { await viewModel.remove(item.query) }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.black, .tertiary)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            } else {
-                                HStack {
-                                    Text(item.query)
-                                    Spacer()
-                                    Text(item.displayDate)
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                        .foregroundColor(.secondary)
-                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    if viewModel.query.isEmpty {
-                        Text("최근 검색")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(16)
-                    }
-                } footer: {
-                    if viewModel.query.isEmpty {
-                        VStack {
-                            HStack {
-                                Spacer()
-                                Button {
-                                    Task { await viewModel.removeAll() }
-                                } label: {
-                                    Text("전체삭제")
-                                        .font(.footnote)
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 16)
-                            }
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
+                if viewModel.isLoading {
+                    ProgressView()
+                        .progressViewStyle(.circular)
                 }
-                .listRowInsets(.init())
-                .listRowSpacing(0)
-                .listRowSeparator(.hidden)
-            }
-            if viewModel.isLoading {
-                ProgressView()
-                    .progressViewStyle(.circular)
             }
         }
         .environment(\.defaultMinListRowHeight, 0)
