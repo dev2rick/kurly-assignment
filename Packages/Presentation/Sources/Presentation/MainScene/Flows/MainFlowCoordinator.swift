@@ -13,6 +13,7 @@ public protocol MainFlowCoordinatorDependencies {
     func makeSearchQueryListView(actions: SearchQueryListViewModelActions) -> SearchQueryListView
 }
 
+@MainActor
 public final class MainFlowCoordinator {
 
     private weak var navigationController: UINavigationController?

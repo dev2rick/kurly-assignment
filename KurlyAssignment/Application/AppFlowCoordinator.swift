@@ -8,6 +8,7 @@
 import UIKit
 import Presentation
 
+@MainActor
 final class AppFlowCoordinator {
 
     private let window: UIWindow
