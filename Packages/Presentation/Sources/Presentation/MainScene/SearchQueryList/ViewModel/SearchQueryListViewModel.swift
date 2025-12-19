@@ -130,6 +130,8 @@ final public class SearchQueryListViewModel: ObservableObject {
     private func fetchRepos(searchQuery: String) async {
         guard !Task.isCancelled else { return }
         self.isLoading = true
+        defer { self.isLoading = false }
+
         do {
             let response = try await fetchGitHubRepoUseCase.execute(query: searchQuery, page: page)
             guard !Task.isCancelled else { return }
@@ -139,7 +141,6 @@ final public class SearchQueryListViewModel: ObservableObject {
         } catch {
             self.errorMessage = error.localizedDescription
         }
-        self.isLoading = false
     }
 }
 

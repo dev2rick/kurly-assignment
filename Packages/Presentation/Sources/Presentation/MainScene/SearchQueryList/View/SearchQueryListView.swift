@@ -169,7 +169,7 @@ extension SearchQueryListView {
                 }
                 if viewModel.isLoading {
                     ProgressView()
-                        .id(viewModel.page)
+                        .id(UUID())
                         .progressViewStyle(.circular)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }

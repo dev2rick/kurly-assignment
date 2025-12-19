@@ -191,6 +191,27 @@ final class SearchQueryListViewModelTests: XCTestCase {
         XCTAssertEqual(mockSaveSearchQuery.executeCallCount, 1)
         XCTAssertEqual(mockFetchGitHubRepo.executeCallCount, 1)
         XCTAssertNotNil(sut.errorMessage)
+        XCTAssertFalse(sut.isLoading, "에러 발생 시에도 isLoading은 false여야 함")
+    }
+
+    func test_onSubmit_Task_취소시_로딩_상태_복원() async throws {
+        // Given
+        sut.query = "Swift"
+        let expectedPage = GitHubRepoPage(page: 1, totalCount: 100, items: [])
+        mockFetchGitHubRepo.executeResult = .success(expectedPage)
+        mockFetchGitHubRepo.delayNanoseconds = 500_000_000 // 0.5초 대기
+
+        // When
+        sut.onSubmit()
+        // Task 시작을 기다린 후 취소
+        try await Task.sleep(nanoseconds: 50_000_000) // 0.05초 대기
+        sut.fetchGitHubRepoTask?.cancel()
+        _ = await sut.fetchGitHubRepoTask?.result
+
+        // Then
+        XCTAssertFalse(sut.isLoading, "Task 취소 시에도 isLoading은 false여야 함")
+        XCTAssertTrue(sut.githubRepos.isEmpty, "Task 취소 시 결과가 추가되지 않아야 함")
+        XCTAssertNil(sut.errorMessage)
     }
 
     // MARK: - onTapItem 테스트

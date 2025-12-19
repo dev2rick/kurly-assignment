@@ -210,3 +210,135 @@ Kurly 채용과제 진행 중 AI(Claude Code)와의 대화 기록
 - 총 17개 테스트 케이스 (1개 추가)
 - `Task.sleep()` 대신 `fetchGitHubRepoTask?.result` 사용으로 안정성 향상
 - 빌드 성공 (iOS 17 시뮬레이터)
+
+---
+
+### Q5. AppFlowCoordinator MainActor 격리 및 코드 검토
+
+**날짜**: 2025-12-19
+
+**질문 1**: AppFlowCoordinator의 start 함수는 MainActor로 격리되지 않아도 괜찮은가?
+
+**분석**:
+- UIKit 작업(UIWindow, UINavigationController 설정)을 하고 있어 MainActor 격리 필요
+- SceneDelegate에서 호출되므로 암묵적으로 메인 스레드에서 실행되지만 명시적 선언 필요
+- Swift 6의 Strict Concurrency를 고려하면 베스트 프랙티스는 `@MainActor` 추가
+
+**답변**:
+현재는 컴파일러가 경고를 내지 않지만, 다음 이유로 명시적으로 `@MainActor`를 추가해야 함:
+1. UIKit은 이미 `@MainActor`로 주석됨 (iOS 13+)
+2. SceneDelegate 컨텍스트가 메인 스레드임을 컴파일러가 추론
+3. 하지만 명시적 선언이 의도를 명확히 하고 미래 안전성 보장
+
+**조치**: `AppFlowCoordinator`에 `@MainActor` 추가
+
+---
+
+**질문 2**: 구현에 문제가 있는지 확인 요청
+
+**분석 수행**:
+전체 코드베이스를 검토하여 잠재적 문제점 탐색
+- 메모리 관리
+- 스레드 안전성
+- 에러 처리
+- Task 관리
+- 상태 관리
+- 무한 스크롤
+- 데이터 일관성
+
+**발견된 치명적 버그**:
+**isLoading 상태 관리 버그** (SearchQueryListViewModel.swift:130-146)
+
+**문제점**:
+```swift
+private func fetchRepos(searchQuery: String) async {
+    guard !Task.isCancelled else { return }
+    self.isLoading = true
+    do {
+        let response = try await ...
+        guard !Task.isCancelled else {
+            return  // ⚠️ isLoading = true 상태로 종료
+        }
+        // ...
+    } catch {
+        self.errorMessage = error.localizedDescription
+    }
+    self.isLoading = false
+}
+```
+
+**버그 시나리오**:
+1. Task 취소 시: Line 137에서 return → isLoading이 true로 남음
+2. 결과: 로딩 인디케이터가 계속 표시되어 UI가 정지된 것처럼 보임
+
+**수정 방법**:
+`defer` 구문을 사용하여 함수 종료 시 항상 isLoading을 false로 설정
+
+**구현**:
+```swift
+private func fetchRepos(searchQuery: String) async {
+    guard !Task.isCancelled else { return }
+    self.isLoading = true
+    defer { self.isLoading = false }  // ✅ 항상 실행
+
+    do {
+        let response = try await fetchGitHubRepoUseCase.execute(query: searchQuery, page: page)
+        guard !Task.isCancelled else { return }
+        self.githubRepos += response.items
+        self.hasNext = response.totalCount > githubRepos.count
+        self.page += 1
+    } catch {
+        self.errorMessage = error.localizedDescription
+    }
+}
+```
+
+**테스트 케이스 추가**:
+1. `test_onSubmit_저장소_검색_실패()`: 에러 발생 시 isLoading 검증 추가
+2. `test_onSubmit_Task_취소시_로딩_상태_복원()`: 새로 추가
+
+**테스트 코드**:
+```swift
+func test_onSubmit_저장소_검색_실패() async throws {
+    // Given
+    sut.query = "Swift"
+    let expectedError = NSError(domain: "TestError", code: 500, userInfo: nil)
+    mockFetchGitHubRepo.executeResult = .failure(expectedError)
+
+    // When
+    sut.onSubmit()
+    _ = await sut.fetchGitHubRepoTask?.result
+
+    // Then
+    XCTAssertEqual(mockSaveSearchQuery.executeCallCount, 1)
+    XCTAssertEqual(mockFetchGitHubRepo.executeCallCount, 1)
+    XCTAssertNotNil(sut.errorMessage)
+    XCTAssertFalse(sut.isLoading, "에러 발생 시에도 isLoading은 false여야 함")
+}
+
+func test_onSubmit_Task_취소시_로딩_상태_복원() async throws {
+    // Given
+    sut.query = "Swift"
+    let expectedPage = GitHubRepoPage(page: 1, totalCount: 100, items: [])
+    mockFetchGitHubRepo.executeResult = .success(expectedPage)
+
+    // When
+    sut.onSubmit()
+    sut.fetchGitHubRepoTask?.cancel()
+    _ = await sut.fetchGitHubRepoTask?.result
+
+    // Then
+    XCTAssertFalse(sut.isLoading, "Task 취소 시에도 isLoading은 false여야 함")
+}
+```
+
+**잘못된 분석 수정**:
+1. ~~postSearch 상태에서 재검색 불가~~ → 실제로는 onSubmit으로 처리됨 (문제 아님)
+2. ~~Task cancel 후 경합 조건~~ → @MainActor로 순차 실행 보장됨 (문제 아님)
+3. ✅ isLoading 관리 버그 → 실제 버그 맞음 (수정 완료)
+
+**결과**:
+- 버그 수정: `defer` 구문 추가로 isLoading 항상 복원
+- 테스트 추가: 총 19개 (기존 17개 + 2개 추가)
+- 빌드 성공: BUILD SUCCEEDED
+- 코드 품질 향상: 엣지 케이스 처리 완료
