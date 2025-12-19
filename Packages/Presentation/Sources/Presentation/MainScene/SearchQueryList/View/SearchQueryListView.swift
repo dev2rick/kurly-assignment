@@ -9,7 +9,6 @@ import SwiftUI
 
 public struct SearchQueryListView: View {
     
-//    @State private(set) var searchQuery: String = ""
     @StateObject private var viewModel: SearchQueryListViewModel
     
     public init(viewModel: SearchQueryListViewModel) {
@@ -17,80 +16,127 @@ public struct SearchQueryListView: View {
     }
     
     public var body: some View {
-        List {
-            
-            switch viewModel.searchState {
-            case .idle:
-                Section {
-                    ForEach(viewModel.cachedQueries, id: \.query) { item in
-                        Button {
-                            Task { await viewModel.onTapItem(item.query) }
-                        } label: {
-                            HStack(spacing: 24) {
-                                Text(item.query)
-                                
-                                Button {
-                                    Task { await viewModel.remove(item.query) }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.black, .tertiary)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .foregroundColor(.secondary)
-                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .buttonStyle(.plain)
+        Group {
+            if case .idle = viewModel.searchState, viewModel.cachedQueries.isEmpty {
+                Text("최근 검색어가 없어요.")
+            } else {
+                List {
+                    switch viewModel.searchState {
+                    case .idle:
+                        IdleCachedQueryListView(viewModel: viewModel)
+                    case .preSearching:
+                        PresearchCachedQueryListView(viewModel: viewModel)
+                    case .postSearch:
+                        GithubRepoListView(viewModel: viewModel)
                     }
-                } header: {
-                    Text("최근 검색")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                        .padding(16)
-                } footer: {
-                    VStack {
-                        HStack {
-                            Spacer()
+                }
+            }
+        }
+        .alert(viewModel.errorMessage ?? "", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK", role: .cancel, action: viewModel.confirmErrorMessage)
+        }
+        .environment(\.defaultMinListRowHeight, 0)
+        .listStyle(.plain)
+        .searchable(text: $viewModel.query, prompt: "저장소 검색")
+        .onSubmit(of: .search) { Task { await viewModel.onSubmit() } }
+        .task {
+            await viewModel.onAppear()
+        }
+    }
+}
+
+// MARK: - idle view
+extension SearchQueryListView {
+    struct IdleCachedQueryListView: View {
+        @ObservedObject var viewModel: SearchQueryListViewModel
+        var body: some View {
+            Section {
+                ForEach(viewModel.cachedQueries, id: \.query) { item in
+                    Button {
+                        Task { await viewModel.onTapItem(item.query) }
+                    } label: {
+                        HStack(spacing: 24) {
+                            Text(item.query)
+                            
                             Button {
-                                Task { await viewModel.removeAll() }
+                                Task { await viewModel.remove(item.query) }
                             } label: {
-                                Text("전체삭제")
-                                    .font(.footnote)
-                                    .foregroundStyle(.red)
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.black, .tertiary)
                             }
                             .buttonStyle(.plain)
-                            .padding(.horizontal, 16)
                         }
-                        Rectangle()
-                            .frame(height: 1)
-                            .foregroundStyle(.tertiary)
                     }
+                    .foregroundColor(.secondary)
+                    .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .buttonStyle(.plain)
                 }
-                .listRowInsets(.init())
-                .listRowSpacing(0)
-                .listRowSeparator(.hidden)
-            case .preSearching:
-                Section {
-                    ForEach(viewModel.cachedQueries, id: \.query) { item in
+            } header: {
+                Text("최근 검색")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .padding(16)
+            } footer: {
+                VStack {
+                    HStack {
+                        Spacer()
                         Button {
-                            Task { await viewModel.onTapItem(item.query) }
+                            Task { await viewModel.removeAll() }
                         } label: {
-                            HStack {
-                                Text(item.query)
-                                Spacer()
-                                Text(item.displayDate)
-                                    .font(.caption)
-                            }
+                            Text("전체삭제")
+                                .font(.footnote)
+                                .foregroundStyle(.red)
                         }
-                        .foregroundColor(.secondary)
-                        .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
                     }
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(.tertiary)
                 }
-                .listRowInsets(.init())
-                .listRowSpacing(0)
-                .listRowSeparator(.hidden)
-            case .postSearch:
+            }
+            .listRowInsets(.init())
+            .listRowSpacing(0)
+            .listRowSeparator(.hidden)
+        }
+    }
+}
+
+// MARK: - Presearch view
+extension SearchQueryListView {
+    struct PresearchCachedQueryListView: View {
+        @ObservedObject var viewModel: SearchQueryListViewModel
+        var body: some View {
+            Section {
+                ForEach(viewModel.cachedQueries, id: \.query) { item in
+                    Button {
+                        Task { await viewModel.onTapItem(item.query) }
+                    } label: {
+                        HStack {
+                            Text(item.query)
+                            Spacer()
+                            Text(item.displayDate)
+                                .font(.caption)
+                        }
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .buttonStyle(.plain)
+                }
+            }
+            .listRowInsets(.init())
+            .listRowSpacing(0)
+            .listRowSeparator(.hidden)
+        }
+    }
+}
+
+// MARK: - Presearch view
+extension SearchQueryListView {
+    struct GithubRepoListView: View {
+        @ObservedObject var viewModel: SearchQueryListViewModel
+        var body: some View {
+            Group {
                 Section {
                     ForEach(viewModel.githubRepos, id: \.self) { item in
                         Button {
@@ -121,15 +167,10 @@ public struct SearchQueryListView: View {
                 if viewModel.isLoading {
                     ProgressView()
                         .progressViewStyle(.circular)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-        }
-        .environment(\.defaultMinListRowHeight, 0)
-        .listStyle(.plain)
-        .searchable(text: $viewModel.query, prompt: "저장소 검색")
-        .onSubmit(of: .search) { Task { await viewModel.onSubmit() } }
-        .task {
-            await viewModel.onAppear()
+            .listRowSeparator(.hidden)
         }
     }
 }
@@ -146,5 +187,6 @@ public struct SearchQueryListView: View {
                 actions: nil
             )
         )
+        .navigationTitle("Search")
     }
 }

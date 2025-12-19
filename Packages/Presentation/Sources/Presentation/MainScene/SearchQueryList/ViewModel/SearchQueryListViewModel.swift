@@ -61,7 +61,7 @@ final public class SearchQueryListViewModel: ObservableObject {
     
     func subscribes() {
         $query
-            .debounce(for: 0.2, scheduler: DispatchQueue.main)
+//            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] in self?.handleQueryChange(query: $0) }
             .store(in: &cancellables)
     }
@@ -85,12 +85,14 @@ final public class SearchQueryListViewModel: ObservableObject {
     }
     
     private func fetchCachedQueries(query: String) async {
+        guard !Task.isCancelled else { return }
         do {
             let queryString: String? = query.isEmpty ? nil : query
             let results = try await fetchSearchQueryUseCase.execute(
                 query: queryString,
                 limit: SearchQueryListViewModel.MAX_SIZE
             )
+            guard !Task.isCancelled else { return }
             self.cachedQueries = results
         } catch {
             self.errorMessage = error.localizedDescription
@@ -138,11 +140,7 @@ extension SearchQueryListViewModel {
     func onAppear() async {
         await fetchCachedQueries(query: query)
     }
-//    
-//    func onSearchQueryChange(_ query: String) async {
-//        await fetchCachedQueries(query: query)
-//    }
-//    
+    
     func onSubmit() async {
         githubRepos = []
         page = 1
@@ -152,6 +150,9 @@ extension SearchQueryListViewModel {
     }
     
     func onTapItem(_ query: String) async {
+        githubRepos = []
+        page = 1
+        searchState = .postSearch(query: query)
         self.query = query
         await save(searchQuery: query)
         await fetchRepos(searchQuery: query)
@@ -170,5 +171,9 @@ extension SearchQueryListViewModel {
     func onTapRepo(_ repo: GitHubRepo) {
         guard let url = URL(string: repo.url) else { return }
         actions?.showGitHubRepo(url)
+    }
+    
+    func confirmErrorMessage() {
+        errorMessage = nil
     }
 }
