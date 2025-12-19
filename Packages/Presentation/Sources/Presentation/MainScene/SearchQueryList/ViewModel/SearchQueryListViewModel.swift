@@ -37,8 +37,11 @@ final public class SearchQueryListViewModel: ObservableObject {
     private let fetchGitHubRepoUseCase: FetchGitHubRepoUseCase
     
     private var fetchCachedQueryTask: Task<Void, Never>?
+    private var fetchGitHubRepoTask: Task<Void, Never>?
+    
     private let actions: SearchQueryListViewModelActions?
     private var cancellables: Set<AnyCancellable> = []
+    private(set) var hasNext: Bool?
     private(set) var page: Int = 1
     private static let MAX_SIZE: Int = 10
     
@@ -61,7 +64,7 @@ final public class SearchQueryListViewModel: ObservableObject {
     
     func subscribes() {
         $query
-//            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] in self?.handleQueryChange(query: $0) }
             .store(in: &cancellables)
     }
@@ -124,14 +127,18 @@ final public class SearchQueryListViewModel: ObservableObject {
     }
     
     private func fetchRepos(searchQuery: String) async {
+        guard !Task.isCancelled else { return }
+        self.isLoading = true
         do {
-            self.isLoading = true
             let response = try await fetchGitHubRepoUseCase.execute(query: searchQuery, page: page)
+            guard !Task.isCancelled else { return }
             self.githubRepos += response.items
-            self.isLoading = false
+            self.hasNext = response.totalCount > githubRepos.count
+            self.page += 1
         } catch {
             self.errorMessage = error.localizedDescription
         }
+        self.isLoading = false
     }
 }
 
@@ -141,21 +148,35 @@ extension SearchQueryListViewModel {
         await fetchCachedQueries(query: query)
     }
     
-    func onSubmit() async {
-        githubRepos = []
-        page = 1
-        searchState = .postSearch(query: query)
-        await save(searchQuery: query)
-        await fetchRepos(searchQuery: query)
+    func onSubmit() {
+        fetchGitHubRepoTask?.cancel()
+        fetchGitHubRepoTask = Task {
+            githubRepos = []
+            page = 1
+            searchState = .postSearch(query: query)
+            await save(searchQuery: query)
+            await fetchRepos(searchQuery: query)
+        }
     }
     
-    func onTapItem(_ query: String) async {
-        githubRepos = []
-        page = 1
-        searchState = .postSearch(query: query)
-        self.query = query
-        await save(searchQuery: query)
-        await fetchRepos(searchQuery: query)
+    func onTapItem(_ query: String) {
+        fetchGitHubRepoTask?.cancel()
+        fetchGitHubRepoTask = Task {
+            githubRepos = []
+            page = 1
+            searchState = .postSearch(query: query)
+            self.query = query
+            await save(searchQuery: query)
+            await fetchRepos(searchQuery: query)
+        }
+    }
+    
+    func onLoadMore(item: GitHubRepo) {
+        guard item == githubRepos.last else { return }
+        guard !isLoading, hasNext == true else { return }
+        fetchGitHubRepoTask = Task {
+            await fetchRepos(searchQuery: query)
+        }
     }
     
     func removeAll() async {

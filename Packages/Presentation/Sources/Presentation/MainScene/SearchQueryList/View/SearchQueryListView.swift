@@ -25,7 +25,7 @@ public struct SearchQueryListView: View {
                     case .idle:
                         IdleCachedQueryListView(viewModel: viewModel)
                     case .preSearching:
-                        PresearchCachedQueryListView(viewModel: viewModel)
+                        PreSearchCachedQueryListView(viewModel: viewModel)
                     case .postSearch:
                         GithubRepoListView(viewModel: viewModel)
                     }
@@ -38,7 +38,7 @@ public struct SearchQueryListView: View {
         .environment(\.defaultMinListRowHeight, 0)
         .listStyle(.plain)
         .searchable(text: $viewModel.query, prompt: "저장소 검색")
-        .onSubmit(of: .search) { Task { await viewModel.onSubmit() } }
+        .onSubmit(of: .search, viewModel.onSubmit)
         .task {
             await viewModel.onAppear()
         }
@@ -53,7 +53,7 @@ extension SearchQueryListView {
             Section {
                 ForEach(viewModel.cachedQueries, id: \.query) { item in
                     Button {
-                        Task { await viewModel.onTapItem(item.query) }
+                        viewModel.onTapItem(item.query)
                     } label: {
                         HStack(spacing: 24) {
                             Text(item.query)
@@ -104,13 +104,13 @@ extension SearchQueryListView {
 
 // MARK: - Presearch view
 extension SearchQueryListView {
-    struct PresearchCachedQueryListView: View {
+    struct PreSearchCachedQueryListView: View {
         @ObservedObject var viewModel: SearchQueryListViewModel
         var body: some View {
             Section {
                 ForEach(viewModel.cachedQueries, id: \.query) { item in
                     Button {
-                        Task { await viewModel.onTapItem(item.query) }
+                        viewModel.onTapItem(item.query)
                     } label: {
                         HStack {
                             Text(item.query)
@@ -162,10 +162,14 @@ extension SearchQueryListView {
                             }
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            viewModel.onLoadMore(item: item)
+                        }
                     }
                 }
                 if viewModel.isLoading {
                     ProgressView()
+                        .id(viewModel.page)
                         .progressViewStyle(.circular)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
